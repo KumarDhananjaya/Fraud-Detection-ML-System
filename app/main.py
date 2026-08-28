@@ -1,7 +1,14 @@
 from fastapi import FastAPI
+from app.model import threshold
 
-from app.schemas import Transaction
-from app.services.prediction import predict_transaction
+from app.schemas import (
+    Transaction,
+    PredictionResponse
+)
+
+from app.services.prediction import (
+    predict_transaction
+)
 
 
 app = FastAPI(
@@ -27,11 +34,22 @@ def health():
     }
 
 
-@app.post("/predict")
+@app.post(
+     "/api/v1/predict",
+    response_model=PredictionResponse
+)
 def predict(transaction: Transaction):
 
-    result = predict_transaction(
+    return predict_transaction(
         transaction.model_dump()
     )
 
-    return result
+@app.get("/api/v1/model")
+def model_info():
+
+    return {
+        "model": "XGBoost",
+        "version": "1.0",
+        "task": "Credit Card Fraud Detection",
+        "threshold": float(threshold)
+    }

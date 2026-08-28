@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field
 
 
 class Transaction(BaseModel):
-
     Time: float = Field(...)
 
     V1: float = Field(...)
@@ -34,4 +33,11 @@ class Transaction(BaseModel):
     V27: float = Field(...)
     V28: float = Field(...)
 
-    Amount: float = Field(...)
+    Amount: float = Field(..., ge=0)
+
+
+class PredictionResponse(BaseModel):
+    prediction: str
+    fraud_probability: float
+    decision_threshold: float
+    risk_level: str

@@ -37,6 +37,17 @@ FEATURES = [
 ]
 
 
+def get_risk_level(probability: float) -> str:
+
+    if probability >= 0.80:
+        return "HIGH"
+
+    if probability >= 0.40:
+        return "MEDIUM"
+
+    return "LOW"
+
+
 def predict_transaction(transaction):
 
     data = pd.DataFrame(
@@ -58,8 +69,13 @@ def predict_transaction(transaction):
         else "legitimate"
     )
 
+    risk_level = get_risk_level(
+        probability
+    )
+
     return {
         "prediction": prediction,
         "fraud_probability": float(probability),
-        "threshold": float(threshold)
+        "decision_threshold": float(threshold),
+        "risk_level": risk_level
     }
