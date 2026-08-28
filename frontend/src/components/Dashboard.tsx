@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { TransactionForm, TransactionData } from './TransactionForm';
-import { PredictionResult, PredictionData } from './PredictionResult';
+import { TransactionForm, type TransactionData } from './TransactionForm';
+import { PredictionResult, type PredictionData } from './PredictionResult';
 import { Activity, Database, Server } from 'lucide-react';
 
 interface ModelInfo {
