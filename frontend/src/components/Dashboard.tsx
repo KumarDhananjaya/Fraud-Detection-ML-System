@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { TransactionForm, type TransactionData } from './TransactionForm';
 import { PredictionResult, type PredictionData } from './PredictionResult';
-import { Activity, Database, Server } from 'lucide-react';
+import { ModelExplanation } from './ModelExplanation';
+import { Activity, Database, Server, FileText, Zap } from 'lucide-react';
 
 interface ModelInfo {
   model: string;
@@ -20,6 +21,7 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<'connected' | 'error' | 'checking'>('checking');
+  const [activeTab, setActiveTab] = useState<'predictor' | 'docs'>('predictor');
 
   useEffect(() => {
     checkApiHealth();
@@ -59,7 +61,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 pb-12">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -94,61 +96,96 @@ export function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 max-w-2xl">
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
-            Real-time Fraud Detection
-          </h2>
-          <p className="text-slate-500">
-            Submit transaction features to our Machine Learning model to instantly determine the probability of fraudulent activity.
-          </p>
+        
+        {/* Navigation Tabs */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-slate-200/60 p-1 rounded-xl inline-flex gap-1">
+            <button
+              onClick={() => setActiveTab('predictor')}
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'predictor' 
+                  ? 'bg-white text-indigo-700 shadow-sm' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
+            >
+              <Zap size={16} />
+              Live Predictor
+            </button>
+            <button
+              onClick={() => setActiveTab('docs')}
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'docs' 
+                  ? 'bg-white text-indigo-700 shadow-sm' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
+            >
+              <FileText size={16} />
+              Model Documentation
+            </button>
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-8 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm flex items-start gap-3">
-            <Activity className="w-5 h-5 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-semibold mb-1">API Error</h4>
-              <p>{error}</p>
+        {activeTab === 'predictor' ? (
+          <>
+            <div className="mb-8 max-w-2xl">
+              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
+                Real-time Fraud Detection
+              </h2>
+              <p className="text-slate-500">
+                Submit transaction features to our Machine Learning model to instantly determine the probability of fraudulent activity.
+              </p>
             </div>
-          </div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-8">
-            <TransactionForm onSubmit={handlePredict} isLoading={isLoading} />
-          </div>
-          
-          <div className="lg:col-span-4 sticky top-24">
-            <PredictionResult result={prediction} />
-            
-            {modelInfo && (
-              <div className="mt-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                  <Database size={16} className="text-indigo-500" />
-                  Model Metadata
-                </h3>
-                <div className="space-y-2.5 text-sm">
-                  <div className="flex justify-between items-center py-1.5 border-b border-slate-50">
-                    <span className="text-slate-500">Algorithm</span>
-                    <span className="font-medium text-slate-700">{modelInfo.model}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5 border-b border-slate-50">
-                    <span className="text-slate-500">Task</span>
-                    <span className="font-medium text-slate-700">{modelInfo.task}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5 border-b border-slate-50">
-                    <span className="text-slate-500">Version</span>
-                    <span className="font-medium text-slate-700">{modelInfo.version}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5 border-b border-slate-50">
-                    <span className="text-slate-500">Decision Threshold</span>
-                    <span className="font-medium text-slate-700">{modelInfo.threshold}</span>
-                  </div>
+            {error && (
+              <div className="mb-8 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm flex items-start gap-3">
+                <Activity className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold mb-1">API Error</h4>
+                  <p>{error}</p>
                 </div>
               </div>
             )}
-          </div>
-        </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="lg:col-span-8">
+                <TransactionForm onSubmit={handlePredict} isLoading={isLoading} />
+              </div>
+              
+              <div className="lg:col-span-4 sticky top-24">
+                <PredictionResult result={prediction} />
+                
+                {modelInfo && (
+                  <div className="mt-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                      <Database size={16} className="text-indigo-500" />
+                      Model Metadata
+                    </h3>
+                    <div className="space-y-2.5 text-sm">
+                      <div className="flex justify-between items-center py-1.5 border-b border-slate-50">
+                        <span className="text-slate-500">Algorithm</span>
+                        <span className="font-medium text-slate-700">{modelInfo.model}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1.5 border-b border-slate-50">
+                        <span className="text-slate-500">Task</span>
+                        <span className="font-medium text-slate-700">{modelInfo.task}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1.5 border-b border-slate-50">
+                        <span className="text-slate-500">Version</span>
+                        <span className="font-medium text-slate-700">{modelInfo.version}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1.5 border-b border-slate-50">
+                        <span className="text-slate-500">Decision Threshold</span>
+                        <span className="font-medium text-slate-700">{modelInfo.threshold}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <ModelExplanation />
+        )}
       </main>
     </div>
   );
