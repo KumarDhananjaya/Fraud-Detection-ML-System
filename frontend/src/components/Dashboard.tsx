@@ -11,7 +11,7 @@ interface ModelInfo {
   threshold: number;
 }
 
-const API_BASE_URL = 'http://localhost:8000'; // Update this for production
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export function Dashboard() {
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
