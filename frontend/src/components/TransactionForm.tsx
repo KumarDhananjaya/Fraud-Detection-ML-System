@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { cn } from '../lib/utils';
 import { AlertCircle, ShieldCheck } from 'lucide-react';
 
@@ -65,12 +65,12 @@ interface TransactionFormProps {
 export function TransactionForm({ onSubmit, isLoading }: TransactionFormProps) {
   const [formData, setFormData] = useState<TransactionData>(defaultData);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };

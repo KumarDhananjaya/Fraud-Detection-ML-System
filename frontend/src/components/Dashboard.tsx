@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { TransactionForm, type TransactionData } from './TransactionForm';
 import { PredictionResult, type PredictionData } from './PredictionResult';
