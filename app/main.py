@@ -83,32 +83,43 @@ REQUIRED_COLUMNS = {
     response_model=BatchPredictionResponse
 )
 async def predict_batch(file: UploadFile = File(...)):
-    if not file.filename.endswith(".csv"):
+    if not (file.filename.endswith(".csv") or file.filename.endswith(".tsv") or file.filename.endswith(".txt")):
         raise HTTPException(
             status_code=400,
-            detail="Only CSV files are accepted."
+            detail="Only CSV, TSV, or TXT files are accepted."
         )
 
     contents = await file.read()
     try:
-        df = pd.read_csv(io.BytesIO(contents))
+        # Using sep=None allows pandas to automatically sniff the separator (comma, tab, semicolon)
+        df = pd.read_csv(io.BytesIO(contents), sep=None, engine="python")
     except Exception as e:
         raise HTTPException(
             status_code=400,
-            detail=f"Could not parse CSV: {str(e)}"
+            detail=f"Could not parse data file: {str(e)}"
         )
+
+    # Convert columns to string and strip whitespace in case of dirty headers
+    df.columns = [str(c).strip() for c in df.columns]
 
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise HTTPException(
             status_code=422,
-            detail=f"CSV is missing required columns: {sorted(missing)}"
+            detail=f"Data is missing required columns: {sorted(missing)}"
         )
+
+    has_class = "Class" in df.columns
 
     results = []
     for idx, row in df.iterrows():
         transaction_dict = {col: float(row[col]) for col in REQUIRED_COLUMNS}
         result = predict_transaction(transaction_dict)
+        
+        actual_class = None
+        if has_class and not pd.isna(row["Class"]):
+            actual_class = int(float(row["Class"]))
+
         results.append(BatchPredictionRow(
             row_index=int(idx),
             amount=float(row["Amount"]),
@@ -116,9 +127,10 @@ async def predict_batch(file: UploadFile = File(...)):
             fraud_probability=result["fraud_probability"],
             decision_threshold=result["decision_threshold"],
             risk_level=result["risk_level"],
+            actual_class=actual_class
         ))
 
-    fraud_count = sum(1 for r in results if r.prediction == "fraud")
+    fraud_count = sum(1 for r in results if r.prediction.lower() == "fraud")
     return BatchPredictionResponse(
         total_rows=len(results),
         fraud_count=fraud_count,

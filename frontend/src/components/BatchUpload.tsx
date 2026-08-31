@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import axios from 'axios';
-import { Upload, FileDown, AlertCircle, ShieldCheck, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Upload, FileDown, AlertCircle, ShieldCheck, FileSpreadsheet, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 interface BatchPredictionRow {
   row_index: number;
@@ -9,6 +9,7 @@ interface BatchPredictionRow {
   fraud_probability: number;
   decision_threshold: number;
   risk_level: string;
+  actual_class?: number | null;
 }
 
 interface BatchPredictionResponse {
@@ -45,12 +46,13 @@ export function BatchUpload({ apiBaseUrl }: Props) {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.name.endsWith('.csv')) {
+      const validExtensions = ['.csv', '.tsv', '.txt'];
+      if (validExtensions.some(ext => droppedFile.name.toLowerCase().endsWith(ext))) {
         setFile(droppedFile);
         setError(null);
         setResponse(null);
       } else {
-        setError('Please upload a valid CSV file.');
+        setError('Please upload a valid CSV, TSV, or TXT file.');
       }
     }
   };
@@ -83,16 +85,31 @@ export function BatchUpload({ apiBaseUrl }: Props) {
   const downloadResults = () => {
     if (!response) return;
 
+    const hasGroundTruth = response.results.some(r => r.actual_class !== undefined && r.actual_class !== null);
+    
     // Build CSV content
     const headers = ['Row Index', 'Amount', 'Prediction', 'Probability', 'Threshold', 'Risk Level'];
-    const rows = response.results.map(r => [
-      r.row_index,
-      r.amount.toFixed(2),
-      r.prediction,
-      r.fraud_probability.toFixed(4),
-      r.decision_threshold.toFixed(4),
-      r.risk_level
-    ]);
+    if (hasGroundTruth) headers.push('Actual Class', 'Correct');
+
+    const rows = response.results.map(r => {
+      const isFraud = r.prediction.toLowerCase() === 'fraud';
+      const rowData = [
+        r.row_index,
+        r.amount.toFixed(2),
+        r.prediction,
+        r.fraud_probability.toFixed(4),
+        r.decision_threshold.toFixed(4),
+        r.risk_level
+      ];
+
+      if (hasGroundTruth) {
+        const actualFraud = r.actual_class === 1;
+        const isCorrect = isFraud === actualFraud;
+        rowData.push(r.actual_class, isCorrect ? 'Yes' : 'No');
+      }
+
+      return rowData;
+    });
 
     const csvContent = [
       headers.join(','),
@@ -109,12 +126,16 @@ export function BatchUpload({ apiBaseUrl }: Props) {
     document.body.removeChild(link);
   };
 
+  const hasGroundTruth = response?.results.some(r => r.actual_class !== undefined && r.actual_class !== null);
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div className="text-center max-w-2xl mx-auto mb-8">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">Batch CSV Prediction</h2>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">Batch Transaction Prediction</h2>
         <p className="text-slate-500 text-sm">
-          Upload a CSV file containing transactions to predict fraud in bulk. The file must include <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">Time</code>, <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">V1</code> to <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">V28</code>, and <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">Amount</code> columns.
+          Upload a data file (CSV/TSV/TXT) to predict fraud in bulk. Must include <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">Time</code>, <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">V1</code>-<code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">V28</code>, and <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded">Amount</code>.
+          <br className="mt-1" />
+          <span className="text-indigo-600 font-medium">New: Include a <code>Class</code> column to automatically compare predictions against ground truth!</span>
         </p>
       </div>
 
@@ -136,7 +157,7 @@ export function BatchUpload({ apiBaseUrl }: Props) {
         >
           <input
             type="file"
-            accept=".csv"
+            accept=".csv,.tsv,.txt"
             className="hidden"
             ref={fileInputRef}
             onChange={handleFileChange}
@@ -169,7 +190,7 @@ export function BatchUpload({ apiBaseUrl }: Props) {
             </div>
           ) : (
             <div className="space-y-2">
-              <h3 className="text-lg font-bold text-slate-800">Drag & Drop your CSV</h3>
+              <h3 className="text-lg font-bold text-slate-800">Drag & Drop your CSV/TSV</h3>
               <p className="text-sm text-slate-500">or click to browse files</p>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -212,7 +233,7 @@ export function BatchUpload({ apiBaseUrl }: Props) {
                 className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm"
               >
                 <FileDown size={16} />
-                Download CSV
+                Download Results
               </button>
             </div>
           </div>
@@ -225,6 +246,7 @@ export function BatchUpload({ apiBaseUrl }: Props) {
                     <th className="px-6 py-4 font-bold text-slate-600">Row</th>
                     <th className="px-6 py-4 font-bold text-slate-600">Amount</th>
                     <th className="px-6 py-4 font-bold text-slate-600">Prediction</th>
+                    {hasGroundTruth && <th className="px-6 py-4 font-bold text-slate-600">Actual Class</th>}
                     <th className="px-6 py-4 font-bold text-slate-600">Probability</th>
                     <th className="px-6 py-4 font-bold text-slate-600">Risk Level</th>
                   </tr>
@@ -232,6 +254,11 @@ export function BatchUpload({ apiBaseUrl }: Props) {
                 <tbody className="divide-y divide-slate-100">
                   {response.results.map((row) => {
                     const isFraud = row.prediction.toLowerCase() === 'fraud';
+                    let isCorrect = null;
+                    if (hasGroundTruth && row.actual_class !== undefined && row.actual_class !== null) {
+                      isCorrect = isFraud === (row.actual_class === 1);
+                    }
+                    
                     return (
                       <tr key={row.row_index} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-3 font-medium text-slate-500">#{row.row_index}</td>
@@ -244,6 +271,28 @@ export function BatchUpload({ apiBaseUrl }: Props) {
                             {row.prediction}
                           </span>
                         </td>
+                        
+                        {hasGroundTruth && (
+                          <td className="px-6 py-3">
+                            {row.actual_class !== undefined && row.actual_class !== null ? (
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center justify-center w-6 h-6 rounded font-bold ${
+                                  row.actual_class === 1 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {row.actual_class}
+                                </span>
+                                {isCorrect ? (
+                                  <CheckCircle size={14} className="text-emerald-500" />
+                                ) : (
+                                  <XCircle size={14} className="text-rose-500" />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                        )}
+
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-2">
                             <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -277,3 +326,4 @@ export function BatchUpload({ apiBaseUrl }: Props) {
     </div>
   );
 }
+

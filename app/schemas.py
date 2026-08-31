@@ -50,6 +50,7 @@ class BatchPredictionRow(BaseModel):
     fraud_probability: float
     decision_threshold: float
     risk_level: str
+    actual_class: int | None = None
 
 
 class BatchPredictionResponse(BaseModel):
