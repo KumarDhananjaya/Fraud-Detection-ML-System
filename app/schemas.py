@@ -41,3 +41,19 @@ class PredictionResponse(BaseModel):
     fraud_probability: float
     decision_threshold: float
     risk_level: str
+
+
+class BatchPredictionRow(BaseModel):
+    row_index: int
+    amount: float
+    prediction: str
+    fraud_probability: float
+    decision_threshold: float
+    risk_level: str
+
+
+class BatchPredictionResponse(BaseModel):
+    total_rows: int
+    fraud_count: int
+    legitimate_count: int
+    results: list[BatchPredictionRow]
