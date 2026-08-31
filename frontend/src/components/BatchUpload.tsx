@@ -93,7 +93,7 @@ export function BatchUpload({ apiBaseUrl }: Props) {
 
     const rows = response.results.map(r => {
       const isFraud = r.prediction.toLowerCase() === 'fraud';
-      const rowData = [
+      const rowData: (string | number | null)[] = [
         r.row_index,
         r.amount.toFixed(2),
         r.prediction,
@@ -105,7 +105,7 @@ export function BatchUpload({ apiBaseUrl }: Props) {
       if (hasGroundTruth) {
         const actualFraud = r.actual_class === 1;
         const isCorrect = isFraud === actualFraud;
-        rowData.push(r.actual_class, isCorrect ? 'Yes' : 'No');
+        rowData.push(r.actual_class ?? null, isCorrect ? 'Yes' : 'No');
       }
 
       return rowData;
